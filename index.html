@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -6,15 +7,16 @@
 <title>Whisper or Burn</title>
 
 <!-- Firebase -->
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
     getFirestore, doc, setDoc, getDoc, onSnapshot,
-    collection, addDoc, updateDoc, arrayUnion, serverTimestamp, query, orderBy, getDocs, deleteDoc
+    updateDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   // ── PASTE YOUR FIREBASE CONFIG HERE ──
-  const firebaseConfig = {
+   const firebaseConfig = {
     apiKey: "AIzaSyC8jCKtY4xy6g-YlvfFgBYan1WbWXuFnx0",
     authDomain: "whisper-or-burn.firebaseapp.com",
     projectId: "whisper-or-burn",
@@ -26,7 +28,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   window._db = db;
-  window._fs = { doc, setDoc, getDoc, onSnapshot, collection, addDoc, updateDoc, arrayUnion, serverTimestamp, query, orderBy, getDocs, deleteDoc };
+  window._fs = { doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp };
   window._dbReady = true;
   document.dispatchEvent(new Event("db-ready"));
 </script>
@@ -58,7 +60,6 @@
     overflow-x: hidden;
   }
 
-  /* ── NOISE OVERLAY ── */
   body::before {
     content: '';
     position: fixed; inset: 0;
@@ -69,7 +70,6 @@
   .screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
   .screen.active { display: flex; flex-direction: column; }
 
-  /* ── HEADER ── */
   .game-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(2.5rem, 8vw, 4rem);
@@ -78,7 +78,6 @@
   }
   .title-accent { color: var(--accent); }
 
-  /* ── BUTTONS ── */
   .btn {
     font-family: 'DM Mono', monospace;
     font-size: 0.8rem;
@@ -106,13 +105,14 @@
   .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   .btn.primary::before { background: #cc0000; }
   .btn.ghost { border-color: var(--muted); color: var(--muted); }
+  .btn.green-btn { background: var(--green); border-color: var(--green); color: #000; }
+  .btn.green-btn::before { background: #2dd682; }
   .btn.gold { background: var(--gold); border-color: var(--gold); color: #000; }
   .btn.gold::before { background: #d4a800; }
   .btn.spy-btn { background: var(--spy); border-color: var(--spy); color: #fff; font-size: 0.7rem; }
   .btn:disabled { opacity: 0.3; cursor: not-allowed; }
   .btn:disabled::before { display: none; }
 
-  /* ── INPUTS ── */
   input, textarea {
     font-family: 'DM Mono', monospace;
     font-size: 0.85rem;
@@ -128,14 +128,8 @@
   input:focus, textarea:focus { border-color: var(--accent); }
   input::placeholder, textarea::placeholder { color: var(--muted); }
 
-  /* ── CARDS ── */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 24px;
-  }
+  .card { background: var(--surface); border: 1px solid var(--border); padding: 24px; }
 
-  /* ── TAG ── */
   .tag {
     font-size: 0.65rem;
     letter-spacing: 0.15em;
@@ -147,168 +141,89 @@
   .tag.red { color: var(--accent); }
   .tag.gold { color: var(--gold); }
   .tag.green { color: var(--green); }
-  .tag.purple { color: var(--spy); }
 
-  /* ── TIMER ── */
-  .timer-ring {
-    position: relative;
-    width: 80px; height: 80px;
-    flex-shrink: 0;
-  }
+  .timer-ring { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
   .timer-ring svg { transform: rotate(-90deg); }
   .timer-ring .track { fill: none; stroke: var(--border); stroke-width: 4; }
-  .timer-ring .progress { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.5s; }
+  .timer-ring .progress { fill: none; stroke: var(--green); stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.5s; }
   .timer-number {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.6rem;
+    font-size: 1.2rem;
     color: var(--accent);
   }
 
-  /* ── PLAYER PILL ── */
   .player-pill {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 16px;
     border: 1px solid var(--border);
     background: var(--surface2);
-    cursor: pointer;
     transition: all 0.15s;
   }
-  .player-pill:hover { border-color: var(--accent); }
+  .player-pill.clickable { cursor: pointer; }
+  .player-pill.clickable:hover { border-color: var(--accent); }
   .player-pill.selected { border-color: var(--accent); background: rgba(255,60,60,0.1); }
-  .player-pill .dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--green);
-    flex-shrink: 0;
-  }
+  .player-pill .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .player-pill .dot.on { background: var(--green); }
+  .player-pill .dot.off { background: var(--muted); }
 
-  /* ── CHAT ── */
   .chat-box {
     display: flex; flex-direction: column; gap: 8px;
-    min-height: 120px;
-    max-height: 240px;
-    overflow-y: auto;
-    padding: 12px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
+    min-height: 100px; max-height: 220px;
+    overflow-y: auto; padding: 12px;
+    background: var(--surface2); border: 1px solid var(--border);
   }
-  .chat-msg {
-    font-size: 0.8rem;
-    line-height: 1.5;
-    padding: 8px 12px;
-    border-left: 2px solid var(--border);
-  }
+  .chat-msg { font-size: 0.8rem; line-height: 1.5; padding: 8px 12px; border-left: 2px solid var(--border); }
   .chat-msg.mine { border-left-color: var(--accent); }
   .chat-msg .sender { color: var(--muted); font-size: 0.65rem; letter-spacing: 0.1em; margin-bottom: 3px; }
 
-  /* ── CONFESSION CARD ── */
   .confession-card {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 16px;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 16px; cursor: pointer; transition: all 0.2s; position: relative;
   }
   .confession-card:hover { border-color: var(--gold); }
   .confession-card.voted { border-color: var(--gold); background: rgba(245,200,66,0.05); }
   .confession-card .vote-count {
     position: absolute; top: 12px; right: 12px;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.4rem;
-    color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; color: var(--gold);
   }
 
-  /* ── LEAK BANNER ── */
   .leak-banner {
-    background: var(--accent);
-    color: #fff;
+    background: var(--accent); color: #fff;
     padding: 12px 20px;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.1rem;
-    letter-spacing: 0.1em;
+    font-size: 1.1rem; letter-spacing: 0.1em;
     display: flex; align-items: center; gap: 10px;
   }
 
-  /* ── DIVIDER ── */
-  .divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--border), transparent);
-    margin: 20px 0;
-  }
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 20px 0; }
 
-  /* ── PULSE ANIMATION ── */
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
   .pulse { animation: pulse 1.5s ease-in-out infinite; }
-
-  @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   .slide-up { animation: slideUp 0.35s ease both; }
 
-  /* ── SCREEN SPECIFIC ── */
-  #screen-home {
-    align-items: center; justify-content: center;
-    padding: 40px 24px; gap: 32px; text-align: center;
-  }
+  #screen-home { align-items: center; justify-content: center; padding: 40px 24px; gap: 32px; text-align: center; }
   #screen-lobby { padding: 24px; gap: 16px; }
+  #screen-ready { padding: 24px; gap: 0; }
   #screen-game { padding: 16px; gap: 12px; }
 
-  .home-tagline {
-    font-size: 0.75rem;
-    letter-spacing: 0.2em;
-    color: var(--muted);
-    text-transform: uppercase;
-  }
-
-  .section-label {
-    font-size: 0.65rem;
-    letter-spacing: 0.2em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-
-  .room-code {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 3rem;
-    letter-spacing: 0.3em;
-    color: var(--accent);
-    text-align: center;
-  }
+  .home-tagline { font-size: 0.75rem; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; }
+  .section-label { font-size: 0.65rem; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .room-code { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; letter-spacing: 0.3em; color: var(--accent); text-align: center; }
 
   .status-bar {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
+    padding: 10px 16px; background: var(--surface); border: 1px solid var(--border);
+    font-size: 0.7rem; letter-spacing: 0.1em;
   }
-
-  .tokens-display {
-    display: flex; gap: 4px; align-items: center;
-  }
-  .token-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    background: var(--spy);
-    transition: background 0.3s;
-  }
+  .tokens-display { display: flex; gap: 4px; align-items: center; }
+  .token-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--spy); transition: background 0.3s; }
   .token-dot.spent { background: var(--border); }
 
-  .turn-indicator {
-    text-align: center; padding: 16px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-  }
-  .turn-big {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.8rem;
-    letter-spacing: 0.05em;
-  }
+  .turn-indicator { text-align: center; padding: 16px; border: 1px solid var(--border); background: var(--surface); }
+  .turn-big { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 0.05em; }
 
   .scroll-list { display: flex; flex-direction: column; gap: 6px; }
 
@@ -317,62 +232,34 @@
     align-items: center; justify-content: center;
     gap: 24px; text-align: center; padding: 32px;
   }
-  .dare-big {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(2rem, 10vw, 3.5rem);
-    letter-spacing: 0.1em;
-    color: var(--accent2);
-    line-height: 1.1;
-  }
+  .dare-big { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 10vw, 3.5rem); letter-spacing: 0.1em; color: var(--accent2); line-height: 1.1; }
 
   .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.85);
-    z-index: 100;
-    display: none;
-    align-items: center; justify-content: center;
-    padding: 24px;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    z-index: 100; display: none; align-items: center; justify-content: center; padding: 24px;
   }
   .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 28px;
-    width: 100%; max-width: 420px;
-    animation: slideUp 0.3s ease both;
-  }
-  .modal-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.6rem;
-    letter-spacing: 0.08em;
-    margin-bottom: 16px;
-  }
+  .modal { background: var(--surface); border: 1px solid var(--border); padding: 28px; width: 100%; max-width: 420px; animation: slideUp 0.3s ease both; }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 0.08em; margin-bottom: 16px; }
 
   .spy-watching {
     position: fixed; bottom: 16px; right: 16px;
-    background: rgba(168,85,247,0.15);
-    border: 1px solid var(--spy);
-    padding: 8px 14px;
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    color: var(--spy);
-    text-transform: uppercase;
-    z-index: 50;
-    display: none;
+    background: rgba(168,85,247,0.15); border: 1px solid var(--spy);
+    padding: 8px 14px; font-size: 0.65rem; letter-spacing: 0.15em;
+    color: var(--spy); text-transform: uppercase; z-index: 50; display: none;
   }
   .spy-watching.show { display: block; }
 
-  /* scrollbar */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--surface); }
   ::-webkit-scrollbar-thumb { background: var(--border); }
 </style>
+
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- HOME SCREEN -->
-<!-- ═══════════════════════════════════════ -->
+<!-- ══ HOME ══ -->
+
 <div id="screen-home" class="screen active">
   <div>
     <div class="home-tagline">a party game of secrets</div>
@@ -392,13 +279,15 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- LOBBY SCREEN -->
-<!-- ═══════════════════════════════════════ -->
+<!-- ══ LOBBY ══ -->
+
 <div id="screen-lobby" class="screen">
   <div style="display:flex;align-items:center;justify-content:space-between">
     <div class="tag red">LOBBY</div>
-    <div id="lobby-host-badge" class="tag green" style="display:none">HOST</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div id="lobby-host-badge" class="tag green" style="display:none">HOST</div>
+      <button class="btn ghost" style="padding:6px 14px;font-size:0.65rem" onclick="leaveRoom()">LEAVE</button>
+    </div>
   </div>
   <div>
     <div class="section-label">room code</div>
@@ -409,7 +298,8 @@
     <div class="section-label">players joined</div>
     <div id="lobby-players" class="scroll-list"></div>
   </div>
-  <div id="lobby-start-wrap" style="display:none;display:flex;flex-direction:column;gap:12px">
+  <!-- HOST ONLY -->
+  <div id="lobby-host-controls" style="display:none;flex-direction:column;gap:12px">
     <div class="card" style="padding:16px 20px">
       <div class="section-label" style="margin-bottom:10px">timer per exchange</div>
       <div style="display:flex;align-items:center;gap:12px">
@@ -422,19 +312,29 @@
         <span>1 MIN</span><span>5 MIN</span>
       </div>
     </div>
-    <button class="btn primary" style="width:100%" onclick="startGame()">START GAME</button>
+    <button class="btn primary" style="width:100%" onclick="hostStartGame()">START GAME</button>
   </div>
-  <div id="lobby-waiting" style="color:var(--muted);font-size:0.7rem;text-align:center;letter-spacing:0.1em">
+  <!-- NON-HOST -->
+  <div id="lobby-waiting" style="color:var(--muted);font-size:0.7rem;text-align:center;letter-spacing:0.1em;display:none">
     waiting for host to start…
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- GAME SCREEN -->
-<!-- ═══════════════════════════════════════ -->
-<div id="screen-game" class="screen">
+<!-- ══ READY ══ -->
 
-  <!-- Status Bar -->
+<div id="screen-ready" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;text-align:center">
+    <div class="tag red">GAME STARTING</div>
+    <div class="game-title">GET<br><span class="title-accent">READY</span></div>
+    <div id="ready-players" class="scroll-list" style="width:100%;max-width:320px"></div>
+    <button class="btn green-btn" id="ready-btn" style="width:100%;max-width:320px" onclick="pressReady()">I'M READY</button>
+    <button class="btn ghost" style="width:100%;max-width:320px;font-size:0.65rem" onclick="leaveRoom()">LEAVE ROOM</button>
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
+
+<div id="screen-game" class="screen">
   <div class="status-bar">
     <div>
       <span style="color:var(--muted)">TURN </span>
@@ -449,51 +349,42 @@
       <span id="status-pool" style="color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:1.1rem">0</span>
     </div>
   </div>
-
-  <!-- Dynamic Game Content -->
   <div id="game-content" style="flex:1;display:flex;flex-direction:column;gap:12px"></div>
-
-  <!-- Host End Button -->
-  <div id="host-end-wrap" style="display:none;margin-top:auto">
+  <div id="host-end-wrap" style="display:none;margin-top:auto;padding-top:8px">
     <button class="btn ghost" style="width:100%;font-size:0.65rem" onclick="confirmEndGame()">END GAME</button>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- SPY WATCHING BADGE -->
-<!-- ═══════════════════════════════════════ -->
+<!-- SPY BADGE -->
+
 <div class="spy-watching" id="spy-badge">👁 YOU ARE WATCHING</div>
 
-<!-- ═══════════════════════════════════════ -->
 <!-- MODAL -->
-<!-- ═══════════════════════════════════════ -->
+
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal" id="modal-body"></div>
 </div>
 
 <script>
-// ═══════════════════════════════════
+// ══════════════════════════
 // STATE
-// ═══════════════════════════════════
+// ══════════════════════════
 let db, fs;
-let myId = 'p_' + Math.random().toString(36).substr(2,8);
+let myId = '';
 let myName = '';
 let roomId = '';
 let isHost = false;
 let gameState = null;
 let unsubRoom = null;
-let chatListener = null;
-let spyListener = null;
 let timerInterval = null;
-let myVotedConfession = null;
 
-// ═══════════════════════════════════
-// INIT
-// ═══════════════════════════════════
+// ══════════════════════════
+// INIT + SESSION RESTORE
+// ══════════════════════════
 document.addEventListener('db-ready', () => {
   db = window._db;
   fs = window._fs;
-  console.log('Firebase ready');
+  tryRestoreSession();
 });
 
 function waitDb() {
@@ -503,38 +394,63 @@ function waitDb() {
   });
 }
 
-// ═══════════════════════════════════
+function saveSession() {
+  localStorage.setItem('wob_session', JSON.stringify({ myId, myName, roomId }));
+}
+
+function clearSession() {
+  localStorage.removeItem('wob_session');
+}
+
+async function tryRestoreSession() {
+  const raw = localStorage.getItem('wob_session');
+  if (!raw) return;
+  try {
+    const s = JSON.parse(raw);
+    if (!s.myId || !s.roomId) return;
+    const snap = await fs.getDoc(fs.doc(db, 'rooms', s.roomId));
+    if (!snap.exists()) { clearSession(); return; }
+    const data = snap.data();
+    if (!data.players?.[s.myId]) { clearSession(); return; }
+    if (data.phase === 'ended') { clearSession(); return; }
+    myId = s.myId;
+    myName = s.myName;
+    roomId = s.roomId;
+    isHost = data.host === myId;
+    subscribeRoom();
+    const ph = data.phase;
+    if (ph === 'lobby') showScreen('lobby');
+    else if (ph === 'ready') showScreen('ready');
+    else showScreen('game');
+  } catch(e) { clearSession(); }
+}
+
+// ══════════════════════════
 // SCREENS
-// ═══════════════════════════════════
+// ══════════════════════════
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + id).classList.add('active');
 }
 
-// ═══════════════════════════════════
-// HOME ACTIONS
-// ═══════════════════════════════════
+// ══════════════════════════
+// HOME
+// ══════════════════════════
 async function hostGame() {
   myName = document.getElementById('home-name').value.trim();
   if (!myName) return alert('Enter your name first');
   await waitDb();
+  myId = 'p_' + Math.random().toString(36).substr(2,8);
   roomId = Math.random().toString(36).substr(2,6).toUpperCase();
   isHost = true;
-
-  const roomData = {
-    phase: 'lobby',
-    host: myId,
+  await fs.setDoc(fs.doc(db, 'rooms', roomId), {
+    phase: 'lobby', host: myId,
     players: { [myId]: { name: myName, tokens: 2, id: myId } },
-    turnIndex: 0,
-    turnCount: 0,
-    confessionPool: [],
-    usedConfessionIds: [],
-    currentChat: null,
-    confessionRound: null,
-    dareRound: null,
-    createdAt: fs.serverTimestamp()
-  };
-  await fs.setDoc(fs.doc(db, 'rooms', roomId), roomData);
+    readyPlayers: [], turnCount: 0, timerSeconds: 120,
+    confessionPool: [], usedConfessionIds: [], currentSpies: [],
+    chatMessages: [], createdAt: fs.serverTimestamp()
+  });
+  saveSession();
   subscribeRoom();
   showLobby();
 }
@@ -545,16 +461,16 @@ async function joinGame() {
   if (!myName) return alert('Enter your name first');
   if (!code) return alert('Enter a room code');
   await waitDb();
+  myId = 'p_' + Math.random().toString(36).substr(2,8);
   roomId = code;
   isHost = false;
-
   const snap = await fs.getDoc(fs.doc(db, 'rooms', roomId));
   if (!snap.exists()) return alert('Room not found');
   if (snap.data().phase !== 'lobby') return alert('Game already started');
-
-  const players = snap.data().players || {};
+  const players = { ...snap.data().players };
   players[myId] = { name: myName, tokens: 2, id: myId };
   await fs.updateDoc(fs.doc(db, 'rooms', roomId), { players });
+  saveSession();
   subscribeRoom();
   showLobby();
 }
@@ -564,140 +480,190 @@ function showLobby() {
   document.getElementById('lobby-code').textContent = roomId;
 }
 
-// ═══════════════════════════════════
-// ROOM SUBSCRIPTION
-// ═══════════════════════════════════
+// ══════════════════════════
+// LEAVE ROOM
+// ══════════════════════════
+async function leaveRoom() {
+  if (!roomId) { clearSession(); location.reload(); return; }
+  try {
+    const snap = await fs.getDoc(fs.doc(db, 'rooms', roomId));
+    if (snap.exists()) {
+      const data = snap.data();
+      const players = { ...data.players };
+      delete players[myId];
+      const remaining = Object.keys(players);
+      if (remaining.length === 0) {
+        await fs.updateDoc(fs.doc(db, 'rooms', roomId), { phase: 'ended' });
+      } else if (data.host === myId) {
+        await fs.updateDoc(fs.doc(db, 'rooms', roomId), { players, host: remaining[0] });
+      } else {
+        await fs.updateDoc(fs.doc(db, 'rooms', roomId), { players });
+      }
+    }
+  } catch(e) {}
+  if (unsubRoom) { unsubRoom(); unsubRoom = null; }
+  clearSession();
+  location.reload();
+}
+
+// ══════════════════════════
+// SUBSCRIPTION
+// ══════════════════════════
 function subscribeRoom() {
   if (unsubRoom) unsubRoom();
   unsubRoom = fs.onSnapshot(fs.doc(db, 'rooms', roomId), snap => {
     if (!snap.exists()) return;
     gameState = snap.data();
+    isHost = gameState.host === myId;
     renderState();
   });
 }
 
+// ══════════════════════════
+// RENDER ROUTER
+// ══════════════════════════
 function renderState() {
   if (!gameState) return;
-  const phase = gameState.phase;
-
-  if (phase === 'lobby') renderLobby();
-  else if (phase === 'pick-target') renderPickTarget();
-  else if (phase === 'chat') renderChat();
-  else if (phase === 'confession') renderConfession();
-  else if (phase === 'dare') renderDare();
-  else if (phase === 'ended') renderEnded();
-
-  // Update status bar
-  if (phase !== 'lobby') {
-    document.getElementById('status-turn').textContent = gameState.turnCount || 1;
-    document.getElementById('status-pool').textContent = (gameState.confessionPool || []).length;
-    renderTokens();
-    const hostEndWrap = document.getElementById('host-end-wrap');
-    if (hostEndWrap) hostEndWrap.style.display = isHost ? 'block' : 'none';
-  }
+  const p = gameState.phase;
+  if (p === 'lobby') { showScreen('lobby'); renderLobby(); }
+  else if (p === 'ready') { showScreen('ready'); renderReady(); }
+  else if (p === 'pick-target') { showScreen('game'); renderPickTarget(); updateStatusBar(); }
+  else if (p === 'chat') { showScreen('game'); renderChat(); updateStatusBar(); }
+  else if (p === 'leaked-reveal') { showScreen('game'); renderLeakedReveal(); updateStatusBar(); }
+  else if (p === 'confession') { showScreen('game'); renderConfession(); updateStatusBar(); }
+  else if (p === 'dare') { showScreen('game'); renderDare(); updateStatusBar(); }
+  else if (p === 'ended') { renderEnded(); }
 }
 
-// ═══════════════════════════════════
-// LOBBY RENDER
-// ═══════════════════════════════════
+function updateStatusBar() {
+  document.getElementById('status-turn').textContent = gameState.turnCount || 1;
+  document.getElementById('status-pool').textContent = (gameState.confessionPool || []).length;
+  renderTokens();
+  const hew = document.getElementById('host-end-wrap');
+  if (hew) hew.style.display = isHost ? 'block' : 'none';
+}
+
+// ══════════════════════════
+// LOBBY
+// ══════════════════════════
 function renderLobby() {
-  const players = gameState.players || {};
-  const names = Object.values(players);
-  const list = document.getElementById('lobby-players');
-  list.innerHTML = names.map(p =>
+  document.getElementById('lobby-code').textContent = roomId;
+  const players = Object.values(gameState.players || {});
+  document.getElementById('lobby-players').innerHTML = players.map(p =>
     `<div class="player-pill slide-up">
-      <div class="dot"></div>
+      <div class="dot on"></div>
       <span>${p.name}</span>
       ${p.id === gameState.host ? '<span class="tag gold" style="margin-left:auto;font-size:0.55rem">HOST</span>' : ''}
     </div>`
   ).join('');
-
   document.getElementById('lobby-host-badge').style.display = isHost ? 'inline-block' : 'none';
-  const startWrap = document.getElementById('lobby-start-wrap');
-  const waitingMsg = document.getElementById('lobby-waiting');
-  if (isHost) {
-    startWrap.style.display = 'block';
-    waitingMsg.style.display = 'none';
-  }
+  document.getElementById('lobby-host-controls').style.display = isHost ? 'flex' : 'none';
+  document.getElementById('lobby-waiting').style.display = isHost ? 'none' : 'block';
 }
 
 function updateTimerLabel(val) {
-  const mins = Math.floor(val / 60);
-  const secs = val % 60;
-  document.getElementById('timer-label').textContent = mins + ':' + String(secs).padStart(2,'0');
+  const m = Math.floor(val/60), s = val%60;
+  document.getElementById('timer-label').textContent = m + ':' + String(s).padStart(2,'0');
 }
 
-async function startGame() {
-  const players = Object.keys(gameState.players);
+async function hostStartGame() {
+  const players = Object.keys(gameState.players || {});
   if (players.length < 2) return alert('Need at least 2 players');
   const timerSeconds = parseInt(document.getElementById('timer-slider')?.value || 120);
+  await fs.updateDoc(fs.doc(db, 'rooms', roomId), { phase: 'ready', timerSeconds, readyPlayers: [] });
+}
+
+// ══════════════════════════
+// READY PHASE
+// ══════════════════════════
+function renderReady() {
+  const players = Object.values(gameState.players || {});
+  const ready = gameState.readyPlayers || [];
+  const myReady = ready.includes(myId);
+
+  document.getElementById('ready-players').innerHTML = players.map(p =>
+    `<div class="player-pill slide-up">
+      <div class="dot ${ready.includes(p.id) ? 'on' : 'off'}"></div>
+      <span>${p.name}</span>
+      <span style="margin-left:auto;font-size:0.65rem;color:${ready.includes(p.id) ? 'var(--green)' : 'var(--muted)'}">
+        ${ready.includes(p.id) ? 'READY ✓' : 'waiting…'}
+      </span>
+    </div>`
+  ).join('');
+
+  const btn = document.getElementById('ready-btn');
+  if (btn) { btn.textContent = myReady ? "READY ✓" : "I'M READY"; btn.disabled = myReady; }
+
+  if (isHost && ready.length >= players.length && players.length >= 2) {
+    beginGame();
+  }
+}
+
+async function pressReady() {
+  const ready = gameState.readyPlayers || [];
+  if (ready.includes(myId)) return;
+  await fs.updateDoc(fs.doc(db, 'rooms', roomId), { readyPlayers: [...ready, myId] });
+}
+
+async function beginGame() {
+  const players = Object.keys(gameState.players || {});
   const turnPlayerId = players[Math.floor(Math.random() * players.length)];
   await fs.updateDoc(fs.doc(db, 'rooms', roomId), {
-    phase: 'pick-target',
-    turnPlayerId,
-    turnCount: 1,
-    timerSeconds,
-    confessionPool: [],
-    usedConfessionIds: []
+    phase: 'pick-target', turnPlayerId,
+    turnCount: 1, confessionPool: [], usedConfessionIds: [], currentSpies: []
   });
-  showScreen('game');
 }
 
-// ═══════════════════════════════════
-// TOKEN DISPLAY
-// ═══════════════════════════════════
+// ══════════════════════════
+// TOKENS
+// ══════════════════════════
 function renderTokens() {
-  const me = gameState.players?.[myId];
-  const tokens = me?.tokens ?? 2;
-  const display = document.getElementById('spy-tokens-display');
-  if (!display) return;
-  display.innerHTML = [0,1].map(i =>
-    `<div class="token-dot ${i >= tokens ? 'spent' : ''}"></div>`
-  ).join('');
+  const tokens = gameState.players?.[myId]?.tokens ?? 2;
+  const el = document.getElementById('spy-tokens-display');
+  if (!el) return;
+  el.innerHTML = [0,1].map(i => `<div class="token-dot ${i >= tokens ? 'spent' : ''}"></div>`).join('');
 }
 
-// ═══════════════════════════════════
-// PICK TARGET PHASE
-// ═══════════════════════════════════
+// ══════════════════════════
+// PICK TARGET
+// ══════════════════════════
+let selectedTargetId = null;
+
 function renderPickTarget() {
-  showScreen('game');
   const isTurnPlayer = gameState.turnPlayerId === myId;
   const turnPlayer = gameState.players?.[gameState.turnPlayerId];
   const others = Object.values(gameState.players || {}).filter(p => p.id !== gameState.turnPlayerId);
 
-  let html = '';
-
-  html += `<div class="turn-indicator slide-up">
+  let html = `<div class="turn-indicator slide-up">
     <div style="color:var(--muted);font-size:0.65rem;letter-spacing:0.15em;margin-bottom:4px">TURN PLAYER</div>
     <div class="turn-big">${turnPlayer?.name || '?'}</div>
     ${isTurnPlayer ? '<div style="color:var(--accent);font-size:0.7rem;margin-top:6px">that\'s you — pick the target</div>' : ''}
   </div>`;
 
   if (isTurnPlayer) {
-    html += `<div><div class="section-label">group's pick — select target</div>
-    <div class="scroll-list" id="target-list">
-    ${others.map(p => `<div class="player-pill" onclick="selectTarget('${p.id}')" id="tpill-${p.id}">
-      <div class="dot"></div><span>${p.name}</span>
-    </div>`).join('')}
-    </div></div>
+    html += `<div>
+      <div class="section-label">group's pick — tap to select</div>
+      <div class="scroll-list">
+      ${others.map(p => `<div class="player-pill clickable" onclick="selectTarget('${p.id}')" id="tpill-${p.id}">
+        <div class="dot on"></div><span>${p.name}</span>
+      </div>`).join('')}
+      </div>
+    </div>
     <button class="btn primary" style="width:100%;margin-top:auto" onclick="confirmTarget()" id="confirm-target-btn" disabled>CONFIRM TARGET</button>`;
   } else {
     html += `<div class="card" style="text-align:center">
-      <div style="color:var(--muted);font-size:0.75rem;letter-spacing:0.1em">the group is deciding who gets questioned…</div>
+      <div style="color:var(--muted);font-size:0.75rem;letter-spacing:0.1em">group is picking a target…</div>
       <div class="pulse" style="margin-top:12px;color:var(--accent);font-size:0.7rem">⬤ waiting</div>
     </div>`;
-
-    // Spy token button — can spy on upcoming chat
     const me = gameState.players?.[myId];
-    if (me && me.tokens > 0 && !isTurnPlayer) {
+    if (me && me.tokens > 0) {
       html += `<button class="btn spy-btn" style="width:100%" onclick="useSpyToken()">👁 USE SPY TOKEN (${me.tokens} left)</button>`;
     }
   }
-
   document.getElementById('game-content').innerHTML = html;
+  selectedTargetId = null;
 }
 
-let selectedTargetId = null;
 function selectTarget(id) {
   selectedTargetId = id;
   document.querySelectorAll('[id^="tpill-"]').forEach(el => el.classList.remove('selected'));
@@ -708,457 +674,322 @@ function selectTarget(id) {
 async function confirmTarget() {
   if (!selectedTargetId) return;
   await fs.updateDoc(fs.doc(db, 'rooms', roomId), {
-    phase: 'chat',
-    targetId: selectedTargetId,
+    phase: 'chat', targetId: selectedTargetId,
     chatStartedAt: Date.now(),
     chatTimerSeconds: gameState.timerSeconds || 120,
-    chatMessages: [],
-    questionSent: false,
-    answerSent: false,
-    leaked: false
+    chatMessages: [], questionSent: false, answerSent: false,
+    doneVotes: [], leaked: false
   });
   selectedTargetId = null;
 }
 
-// ═══════════════════════════════════
+// ══════════════════════════
 // SPY TOKEN
-// ═══════════════════════════════════
+// ══════════════════════════
 async function useSpyToken() {
   const me = gameState.players?.[myId];
   if (!me || me.tokens <= 0) return;
-  const newTokens = me.tokens - 1;
   const players = { ...gameState.players };
-  players[myId] = { ...me, tokens: newTokens };
-  // Mark this player as a spy for this chat
-  const spies = gameState.currentSpies || [];
-  await fs.updateDoc(fs.doc(db, 'rooms', roomId), {
-    players,
-    currentSpies: [...spies, myId]
-  });
+  players[myId] = { ...me, tokens: me.tokens - 1 };
+  const spies = [...(gameState.currentSpies || [])];
+  if (!spies.includes(myId)) spies.push(myId);
+  await fs.updateDoc(fs.doc(db, 'rooms', roomId), { players, currentSpies: spies });
   document.getElementById('spy-badge').classList.add('show');
-  setTimeout(() => document.getElementById('spy-badge').classList.remove('show'), 5000);
+  setTimeout(() => document.getElementById('spy-badge').classList.remove('show'), 4000);
 }
 
-// ═══════════════════════════════════
-// CHAT PHASE
-// ═══════════════════════════════════
+// ══════════════════════════
+// CHAT
+// ══════════════════════════
 function renderChat() {
-  showScreen('game');
   const isTurnPlayer = gameState.turnPlayerId === myId;
   const isTarget = gameState.targetId === myId;
   const isSpy = (gameState.currentSpies || []).includes(myId);
   const canSeeChat = isTurnPlayer || isTarget || isSpy;
-
   const turnPlayer = gameState.players?.[gameState.turnPlayerId];
   const target = gameState.players?.[gameState.targetId];
 
   const elapsed = (Date.now() - (gameState.chatStartedAt || Date.now())) / 1000;
-  const timeLeft = Math.max(0, (gameState.chatTimerSeconds || 30) - elapsed);
+  const total = gameState.chatTimerSeconds || 120;
+  const timeLeft = Math.max(0, total - elapsed);
+  const tlM = Math.floor(timeLeft/60), tlS = Math.floor(timeLeft%60);
 
-  let html = '';
-
-  // Header
-  html += `<div style="display:flex;align-items:center;justify-content:space-between">
+  let html = `<div style="display:flex;align-items:center;justify-content:space-between">
     <div>
       <div style="color:var(--muted);font-size:0.65rem;letter-spacing:0.1em">PRIVATE EXCHANGE</div>
       <div style="font-size:0.85rem;margin-top:2px">${turnPlayer?.name} <span style="color:var(--muted)">→</span> ${target?.name}</div>
     </div>
-    <div class="timer-ring" id="timer-ring">
+    <div class="timer-ring">
       <svg width="80" height="80" viewBox="0 0 80 80">
         <circle class="track" cx="40" cy="40" r="34"/>
         <circle class="progress" id="timer-progress" cx="40" cy="40" r="34"
-          stroke-dasharray="${2 * Math.PI * 34}"
-          stroke-dashoffset="0"/>
+          stroke-dasharray="${2*Math.PI*34}" stroke-dashoffset="0"/>
       </svg>
-      <div class="timer-number" id="timer-num">${Math.ceil(timeLeft)}</div>
+      <div class="timer-number" id="timer-num">${tlM}:${String(tlS).padStart(2,'0')}</div>
     </div>
   </div>`;
 
   if (canSeeChat) {
     if (isSpy && !isTurnPlayer && !isTarget) {
-      html += `<div class="leak-banner" style="font-size:0.75rem">👁 YOU ARE WATCHING IN SECRET</div>`;
+      html += `<div style="background:rgba(168,85,247,0.1);border:1px solid var(--spy);padding:10px 16px;font-size:0.7rem;color:var(--spy);letter-spacing:0.1em">👁 WATCHING IN SECRET</div>`;
     }
 
-    html += `<div class="chat-box" id="chat-box">`;
     const messages = gameState.chatMessages || [];
-    messages.forEach(m => {
-      const isMine = m.senderId === myId;
-      html += `<div class="chat-msg ${isMine ? 'mine' : ''}">
-        <div class="sender">${m.senderName}</div>
-        <div>${m.text}</div>
-      </div>`;
-    });
-    html += `</div>`;
+    html += `<div class="chat-box" id="chat-box">
+    ${messages.map(m => `<div class="chat-msg ${m.senderId===myId?'mine':''}">
+      <div class="sender">${m.senderName}</div><div>${m.text}</div>
+    </div>`).join('')}
+    </div>`;
 
-    // Input
     if (isTurnPlayer || isTarget) {
       const canType = isTurnPlayer ? !gameState.questionSent : (gameState.questionSent && !gameState.answerSent);
-      const placeholder = isTurnPlayer
+      const ph = isTurnPlayer
         ? (gameState.questionSent ? 'question sent — waiting for answer…' : 'type your question…')
         : (gameState.questionSent ? 'type your answer…' : 'waiting for question…');
 
-      html += `<div style="display:flex;gap:8px;margin-top:auto">
-        <textarea id="chat-input" rows="2" placeholder="${placeholder}" ${!canType ? 'disabled' : ''} style="flex:1"></textarea>
-        <button class="btn primary" onclick="sendChatMsg()" ${!canType ? 'disabled' : ''} style="padding:12px 16px;align-self:stretch">SEND</button>
-      </div>`;
-    }
-  } else {
-    // Observer
-    html += `<div class="card" style="text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
-      <div style="font-size:2rem">🔒</div>
-      <div style="color:var(--muted);font-size:0.75rem;letter-spacing:0.1em">private exchange in progress</div>
-    </div>`;
+      html += `<div style="display:flex;gap:8px">
+        <textarea id="chat-input" rows="2" placeholder="${ph}" ${!canType?'disabled':''} style="flex:1"></textarea>
 
-    const me = gameState.players?.[myId];
-    if (me && me.tokens > 0) {
-      html += `<button class="btn spy-btn" style="width:100%" onclick="useSpyToken()">👁 USE SPY TOKEN TO WATCH (${me.tokens} left)</button>`;
-    }
-  }
+```
+    <button class="btn primary" onclick="sendChatMsg()" ${!canType?'disabled':''} style="padding:12px 16px;align-self:stretch">SEND</button>
+  </div>`;
 
-  document.getElementById('game-content').innerHTML = html;
-  startClientTimer(timeLeft);
-  scrollChatToBottom();
+  const doneVotes = gameState.doneVotes || [];
+  const myDone = doneVotes.includes(myId);
+  html += `<button class="btn ghost" style="width:100%;font-size:0.7rem" onclick="voteDone()" ${myDone?'disabled':''}>
+    ${myDone ? 'WAITING FOR OTHER PERSON…' : "WE'RE DONE — END EARLY"}
+  </button>`;
+}
+```
+
+} else {
+html += `<div class="card" style="text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px"> <div style="font-size:2rem">🔒</div> <div style="color:var(--muted);font-size:0.75rem;letter-spacing:0.1em">private exchange in progress</div> </div>`;
+const me = gameState.players?.[myId];
+if (me && me.tokens > 0) {
+html += `<button class="btn spy-btn" style="width:100%" onclick="useSpyToken()">👁 SPY TOKEN — WATCH LIVE (${me.tokens} left)</button>`;
+}
 }
 
-function scrollChatToBottom() {
-  const box = document.getElementById('chat-box');
-  if (box) box.scrollTop = box.scrollHeight;
+document.getElementById(‘game-content’).innerHTML = html;
+startClientTimer(timeLeft);
+const box = document.getElementById(‘chat-box’);
+if (box) box.scrollTop = box.scrollHeight;
+
+// Check if both voted done
+const doneVotes = gameState.doneVotes || [];
+if (isHost && doneVotes.includes(gameState.turnPlayerId) && doneVotes.includes(gameState.targetId)) {
+wrapUpChat(false);
 }
-
-function startClientTimer(initialSeconds) {
-  if (timerInterval) clearInterval(timerInterval);
-  let secondsLeft = Math.ceil(initialSeconds);
-  const circumference = 2 * Math.PI * 34;
-
-  function tick() {
-    const numEl = document.getElementById('timer-num');
-    const progEl = document.getElementById('timer-progress');
-    if (!numEl) { clearInterval(timerInterval); return; }
-
-    numEl.textContent = Math.max(0, secondsLeft);
-    const frac = secondsLeft / (gameState.chatTimerSeconds || 30);
-    const offset = circumference * (1 - frac);
-    if (progEl) {
-      progEl.style.strokeDashoffset = offset;
-      progEl.style.stroke = secondsLeft <= 10 ? '#ff3c3c' : secondsLeft <= 20 ? '#ff8c00' : '#3cffa0';
-    }
-
-    if (secondsLeft <= 0) {
-      clearInterval(timerInterval);
-      if (isHost) handleTimerExpiry();
-    }
-    secondsLeft--;
-  }
-  tick();
-  timerInterval = setInterval(tick, 1000);
 }
 
 async function sendChatMsg() {
-  const input = document.getElementById('chat-input');
-  const text = input?.value.trim();
-  if (!text) return;
+const input = document.getElementById(‘chat-input’);
+const text = input?.value.trim();
+if (!text) return;
+const isTurnPlayer = gameState.turnPlayerId === myId;
+const isTarget = gameState.targetId === myId;
+const me = gameState.players?.[myId];
+const messages = […(gameState.chatMessages||[]), { senderId:myId, senderName:me.name, text, ts:Date.now() }];
+const updates = { chatMessages: messages };
+if (isTurnPlayer) updates.questionSent = true;
+if (isTarget) updates.answerSent = true;
+await fs.updateDoc(fs.doc(db, ‘rooms’, roomId), updates);
+if (input) input.value = ‘’;
+if (isHost && updates.answerSent && gameState.questionSent) setTimeout(() => wrapUpChat(false), 800);
+}
 
-  const isTurnPlayer = gameState.turnPlayerId === myId;
-  const isTarget = gameState.targetId === myId;
-  const me = gameState.players?.[myId];
+async function voteDone() {
+const doneVotes = […(gameState.doneVotes||[])];
+if (doneVotes.includes(myId)) return;
+doneVotes.push(myId);
+await fs.updateDoc(fs.doc(db, ‘rooms’, roomId), { doneVotes });
+}
 
-  const newMsg = { senderId: myId, senderName: me.name, text, ts: Date.now() };
-  const messages = [...(gameState.chatMessages || []), newMsg];
-  const updates = { chatMessages: messages };
+function startClientTimer(initialSeconds) {
+if (timerInterval) clearInterval(timerInterval);
+let s = Math.ceil(initialSeconds);
+const circumference = 2 * Math.PI * 34;
+const total = gameState.chatTimerSeconds || 120;
 
-  if (isTurnPlayer) updates.questionSent = true;
-  if (isTarget) updates.answerSent = true;
-
-  await fs.updateDoc(fs.doc(db, 'rooms', roomId), updates);
-  input.value = '';
-
-  // If both sent, host wraps up
-  if (isHost && updates.answerSent && gameState.questionSent) {
-    setTimeout(() => wrapUpChat(false), 1000);
-  }
+function tick() {
+const numEl = document.getElementById(‘timer-num’);
+const progEl = document.getElementById(‘timer-progress’);
+if (!numEl) { clearInterval(timerInterval); return; }
+const m = Math.floor(Math.max(0,s)/60), sec = Math.floor(Math.max(0,s)%60);
+numEl.textContent = m + ‘:’ + String(sec).padStart(2,‘0’);
+if (progEl) {
+progEl.style.strokeDashoffset = circumference * (1 - s/total);
+progEl.style.stroke = s <= 30 ? ‘#ff3c3c’ : s <= 60 ? ‘#ff8c00’ : ‘#3cffa0’;
+}
+if (s <= 0) { clearInterval(timerInterval); if (isHost) handleTimerExpiry(); }
+s–;
+}
+tick();
+timerInterval = setInterval(tick, 1000);
 }
 
 async function handleTimerExpiry() {
-  if (gameState.phase !== 'chat') return;
-  await wrapUpChat(true);
+if (gameState.phase !== ‘chat’) return;
+await wrapUpChat(true);
 }
 
 async function wrapUpChat(leaked) {
-  if (gameState.phase !== 'chat') return;
-  clearInterval(timerInterval);
+if (gameState.phase !== ‘chat’) return;
+clearInterval(timerInterval);
+const chatEntry = {
+id: ‘chat_’ + Date.now(),
+turnPlayerName: gameState.players?.[gameState.turnPlayerId]?.name || ‘?’,
+targetName: gameState.players?.[gameState.targetId]?.name || ‘?’,
+messages: gameState.chatMessages || [],
+leaked
+};
+const pool = […(gameState.confessionPool||[]), chatEntry];
+const newTurnCount = (gameState.turnCount||1) + 1;
+const players = Object.keys(gameState.players||{});
+const nextTurnPlayerId = players[((players.indexOf(gameState.turnPlayerId))+1) % players.length];
+const shouldConfess = newTurnCount % 5 === 1 && pool.length >= 3;
 
-  const chatEntry = {
-    id: 'chat_' + Date.now(),
-    turnPlayerName: gameState.players?.[gameState.turnPlayerId]?.name || '?',
-    targetName: gameState.players?.[gameState.targetId]?.name || '?',
-    messages: gameState.chatMessages || [],
-    leaked
-  };
-
-  const pool = [...(gameState.confessionPool || []), chatEntry];
-  const newTurnCount = (gameState.turnCount || 1) + 1;
-  const players = Object.keys(gameState.players || {});
-
-  // Rotate turn player
-  const currentIdx = players.indexOf(gameState.turnPlayerId);
-  const nextTurnPlayerId = players[(currentIdx + 1) % players.length];
-
-  // Check if confession round triggers (every 5 turns, pool >= 3)
-  const shouldConfess = newTurnCount % 5 === 1 && pool.length >= 3;
-
-  if (leaked) {
-    // Show leaked banner briefly then next phase
-    await fs.updateDoc(fs.doc(db, 'rooms', roomId), {
-      phase: 'leaked-reveal',
-      confessionPool: pool,
-      lastLeakedChat: chatEntry,
-      leakedRevealNext: shouldConfess ? 'confession' : 'pick-target',
-      nextTurnPlayerId,
-      turnCount: newTurnCount,
-      currentSpies: []
-    });
-    setTimeout(async () => {
-      await fs.updateDoc(fs.doc(db, 'rooms', roomId), {
-        phase: shouldConfess ? 'confession' : 'pick-target',
-        turnPlayerId: nextTurnPlayerId,
-        ...(shouldConfess ? buildConfessionState(pool, gameState.usedConfessionIds || []) : {})
-      });
-    }, 3000);
-  } else {
-    await fs.updateDoc(fs.doc(db, 'rooms', roomId), {
-      phase: shouldConfess ? 'confession' : 'pick-target',
-      confessionPool: pool,
-      turnPlayerId: nextTurnPlayerId,
-      turnCount: newTurnCount,
-      currentSpies: [],
-      ...(shouldConfess ? buildConfessionState(pool, gameState.usedConfessionIds || []) : {})
-    });
-  }
+if (leaked) {
+await fs.updateDoc(fs.doc(db, ‘rooms’, roomId), {
+phase: ‘leaked-reveal’, confessionPool: pool,
+lastLeakedChat: chatEntry, nextTurnPlayerId,
+turnCount: newTurnCount, currentSpies: []
+});
+setTimeout(async () => {
+await fs.updateDoc(fs.doc(db, ‘rooms’, roomId), {
+phase: shouldConfess ? ‘confession’ : ‘pick-target’,
+turnPlayerId: nextTurnPlayerId,
+…(shouldConfess ? buildConfessionState(pool, gameState.usedConfessionIds||[]) : {})
+});
+}, 3500);
+} else {
+await fs.updateDoc(fs.doc(db, ‘rooms’, roomId), {
+phase: shouldConfess ? ‘confession’ : ‘pick-target’,
+confessionPool: pool, turnPlayerId: nextTurnPlayerId,
+turnCount: newTurnCount, currentSpies: [],
+…(shouldConfess ? buildConfessionState(pool, gameState.usedConfessionIds||[]) : {})
+});
+}
 }
 
 function buildConfessionState(pool, usedIds) {
-  const available = pool.filter(c => !usedIds.includes(c.id));
-  const shuffled = available.sort(() => Math.random() - 0.5);
-  const selected = shuffled.slice(0, 3);
-  const newUsedIds = [...usedIds, ...selected.map(c => c.id)];
-  const votes = {};
-  selected.forEach(c => votes[c.id] = []);
-  return {
-    confessionRound: { chats: selected, votes, resolved: false },
-    usedConfessionIds: newUsedIds
-  };
+const available = pool.filter(c => !usedIds.includes(c.id)).sort(() => Math.random()-0.5);
+const selected = available.slice(0,3);
+const votes = {};
+selected.forEach(c => votes[c.id] = []);
+return {
+confessionRound: { chats: selected, votes, resolved: false },
+usedConfessionIds: […usedIds, …selected.map(c => c.id)]
+};
 }
 
-// ═══════════════════════════════════
+// ══════════════════════════
 // LEAKED REVEAL
-// ═══════════════════════════════════
+// ══════════════════════════
 function renderLeakedReveal() {
-  showScreen('game');
-  const chat = gameState.lastLeakedChat;
-  const msgs = chat?.messages || [];
-
-  let html = `<div class="leak-banner slide-up">🔥 TIME EXPIRED — CHAT LEAKED</div>
-  <div class="card" style="flex:1">
-    <div class="section-label">exposed exchange</div>
-    <div class="chat-box">
-    ${msgs.map(m => `<div class="chat-msg"><div class="sender">${m.senderName}</div><div>${m.text}</div></div>`).join('')}
-    </div>
-  </div>`;
-
-  document.getElementById('game-content').innerHTML = html;
+const msgs = (gameState.lastLeakedChat?.messages || []);
+document.getElementById(‘game-content’).innerHTML = `<div class="leak-banner slide-up">🔥 TIME EXPIRED — CHAT LEAKED</div> <div class="card" style="flex:1"> <div class="section-label">exposed exchange</div> <div class="chat-box"> ${msgs.map(m =>`<div class="chat-msg"><div class="sender">${m.senderName}</div><div>${m.text}</div></div>`).join('')} </div> </div>`;
 }
 
-// ═══════════════════════════════════
-// CONFESSION PHASE
-// ═══════════════════════════════════
+// ══════════════════════════
+// CONFESSION
+// ══════════════════════════
 function renderConfession() {
-  showScreen('game');
-  const round = gameState.confessionRound;
-  if (!round) return;
+const round = gameState.confessionRound;
+if (!round) return;
+const votes = round.votes || {};
+const totalVoters = Object.keys(gameState.players||{}).length;
+const totalVotes = Object.values(votes).reduce((sum,arr) => sum+arr.length, 0);
 
-  const chats = round.chats || [];
-  const votes = round.votes || {};
-  const myVote = Object.entries(votes).find(([id, voters]) => voters.includes(myId))?.[0];
-  const totalVoters = Object.keys(gameState.players || {}).length;
+let html = `<div class="slide-up" style="text-align:center">
+<div class="tag gold">CONFESSION ROUND</div>
+<div style="color:var(--muted);font-size:0.7rem;margin-top:8px;letter-spacing:0.1em">vote for the juiciest exchange</div>
 
-  let html = `<div class="slide-up" style="text-align:center">
-    <div class="tag gold">CONFESSION ROUND</div>
-    <div style="color:var(--muted);font-size:0.7rem;margin-top:8px;letter-spacing:0.1em">vote for the juiciest exchange</div>
   </div>`;
 
-  chats.forEach((chat, idx) => {
-    const voteCount = (votes[chat.id] || []).length;
-    const hasVoted = (votes[chat.id] || []).includes(myId);
-    const msgs = chat.messages || [];
+(round.chats||[]).forEach((chat, idx) => {
+const vc = (votes[chat.id]||[]).length;
+const hasVoted = (votes[chat.id]||[]).includes(myId);
+html += `<div class="confession-card slide-up ${hasVoted?'voted':''}" onclick="voteConfession('${chat.id}')"> <div class="vote-count">${vc}</div> <div class="tag" style="color:var(--muted);margin-bottom:10px">exchange ${idx+1}</div> <div class="chat-box" style="max-height:120px"> ${(chat.messages||[]).map(m=>`<div class="chat-msg"><div class="sender">???</div><div>${m.text}</div></div>`).join('')} </div> </div>`;
+});
 
-    html += `<div class="confession-card slide-up ${hasVoted ? 'voted' : ''}" onclick="voteConfession('${chat.id}')">
-      <div class="vote-count">${voteCount}</div>
-      <div class="tag" style="color:var(--muted);margin-bottom:10px">exchange ${idx + 1}</div>
-      <div class="chat-box" style="max-height:120px">
-      ${msgs.map(m => `<div class="chat-msg"><div class="sender">???</div><div>${m.text}</div></div>`).join('')}
-      </div>
-    </div>`;
-  });
-
-  // Check if all voted
-  const totalVotes = Object.values(votes).reduce((sum, arr) => sum + arr.length, 0);
-  if (isHost && totalVotes >= totalVoters) {
-    html += `<button class="btn gold" style="width:100%" onclick="resolveConfession()">REVEAL THE JUICIEST 🔥</button>`;
-  } else {
-    html += `<div style="color:var(--muted);font-size:0.7rem;text-align:center;letter-spacing:0.1em">${totalVotes}/${totalVoters} voted</div>`;
-  }
-
-  document.getElementById('game-content').innerHTML = html;
+if (isHost && totalVotes >= totalVoters) {
+html += `<button class="btn gold" style="width:100%" onclick="resolveConfession()">REVEAL THE JUICIEST 🔥</button>`;
+} else {
+html += `<div style="color:var(--muted);font-size:0.7rem;text-align:center;letter-spacing:0.1em">${totalVotes}/${totalVoters} voted</div>`;
+}
+document.getElementById(‘game-content’).innerHTML = html;
 }
 
 async function voteConfession(chatId) {
-  const round = gameState.confessionRound;
-  if (!round) return;
-  const votes = { ...round.votes };
-
-  // Remove existing vote
-  Object.keys(votes).forEach(id => {
-    votes[id] = (votes[id] || []).filter(v => v !== myId);
-  });
-  votes[chatId] = [...(votes[chatId] || []), myId];
-
-  await fs.updateDoc(fs.doc(db, 'rooms', roomId), {
-    'confessionRound.votes': votes
-  });
+const votes = { …(gameState.confessionRound?.votes||{}) };
+Object.keys(votes).forEach(id => { votes[id] = (votes[id]||[]).filter(v => v!==myId); });
+votes[chatId] = […(votes[chatId]||[]), myId];
+await fs.updateDoc(fs.doc(db, ‘rooms’, roomId), { ‘confessionRound.votes’: votes });
 }
 
 async function resolveConfession() {
-  const round = gameState.confessionRound;
-  const votes = round.votes || {};
-  let maxVotes = -1, winnerId = null;
-  Object.entries(votes).forEach(([id, voters]) => {
-    if (voters.length > maxVotes) { maxVotes = voters.length; winnerId = id; }
-  });
-
-  const winnerChat = round.chats.find(c => c.id === winnerId);
-
-  // Pick random dare target (not the two players)
-  const allPlayers = Object.values(gameState.players || {});
-  const excluded = [winnerChat?.turnPlayerName, winnerChat?.targetName];
-  const eligible = allPlayers.filter(p => !excluded.includes(p.name));
-  const dareTarget = eligible.length > 0
-    ? eligible[Math.floor(Math.random() * eligible.length)]
-    : allPlayers[Math.floor(Math.random() * allPlayers.length)];
-
-  await fs.updateDoc(fs.doc(db, 'rooms', roomId), {
-    phase: 'dare',
-    dareRound: {
-      winnerChat,
-      dareTargetName: dareTarget.name,
-      dareTargetId: dareTarget.id
-    },
-    confessionRound: null
-  });
+const votes = gameState.confessionRound?.votes || {};
+let maxV = -1, winnerId = null;
+Object.entries(votes).forEach(([id,arr]) => { if(arr.length>maxV){maxV=arr.length;winnerId=id;} });
+const winnerChat = (gameState.confessionRound?.chats||[]).find(c=>c.id===winnerId);
+const allPlayers = Object.values(gameState.players||{});
+const excluded = [winnerChat?.turnPlayerName, winnerChat?.targetName];
+const eligible = allPlayers.filter(p=>!excluded.includes(p.name));
+const pool = eligible.length>0 ? eligible : allPlayers;
+const dareTarget = pool[Math.floor(Math.random()*pool.length)];
+await fs.updateDoc(fs.doc(db, ‘rooms’, roomId), {
+phase: ‘dare’,
+dareRound: { winnerChat, dareTargetName: dareTarget.name, dareTargetId: dareTarget.id },
+confessionRound: null
+});
 }
 
-// ═══════════════════════════════════
-// DARE PHASE
-// ═══════════════════════════════════
+// ══════════════════════════
+// DARE
+// ══════════════════════════
 function renderDare() {
-  showScreen('game');
-  const dare = gameState.dareRound;
-  if (!dare) return;
-  const chat = dare.winnerChat;
-  const msgs = chat?.messages || [];
+const dare = gameState.dareRound;
+if (!dare) return;
+const msgs = dare.winnerChat?.messages || [];
+let html = `<div class="dare-screen slide-up"> <div class="tag red">CONFESSION WINNER</div> <div class="card" style="width:100%;text-align:left"> <div style="margin-bottom:8px"> <span style="color:var(--accent)">${dare.winnerChat?.turnPlayerName}</span> <span style="color:var(--muted)"> × </span> <span style="color:var(--accent)">${dare.winnerChat?.targetName}</span> </div> <div class="chat-box" style="max-height:140px"> ${msgs.map(m=>`<div class="chat-msg"><div class="sender">${m.senderName}</div><div>${m.text}</div></div>`).join('')} </div> </div> <div> <div class="dare-big">DARE</div> <div style="color:var(--muted);font-size:0.75rem;letter-spacing:0.1em;margin-top:4px">assigned to</div> <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--accent2);letter-spacing:0.05em;margin-top:4px">${dare.dareTargetName}</div> </div> ${isHost ? `<button class="btn primary" style="width:100%;max-width:320px" onclick="continueAfterDare()">DARE DONE — CONTINUE</button>`:`<div style="color:var(--muted);font-size:0.7rem;letter-spacing:0.1em" class="pulse">waiting for host…</div>`}
 
-  let html = `<div class="dare-screen slide-up">
-    <div class="tag red">CONFESSION WINNER</div>
-    <div class="card" style="width:100%;text-align:left">
-      <div style="margin-bottom:8px">
-        <span style="color:var(--accent)">${chat?.turnPlayerName}</span>
-        <span style="color:var(--muted)"> × </span>
-        <span style="color:var(--accent)">${chat?.targetName}</span>
-      </div>
-      <div class="chat-box" style="max-height:140px">
-      ${msgs.map(m => `<div class="chat-msg"><div class="sender">${m.senderName}</div><div>${m.text}</div></div>`).join('')}
-      </div>
-    </div>
-    <div>
-      <div class="dare-big">DARE</div>
-      <div style="color:var(--muted);font-size:0.75rem;letter-spacing:0.1em;margin-top:4px">assigned to</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--accent2);letter-spacing:0.05em;margin-top:4px">${dare.dareTargetName}</div>
-    </div>`;
-
-  if (isHost) {
-    html += `<button class="btn primary" style="width:100%;max-width:320px" onclick="continuAfterDare()">DARE DONE — CONTINUE</button>`;
-  } else {
-    html += `<div style="color:var(--muted);font-size:0.7rem;letter-spacing:0.1em" class="pulse">waiting for host…</div>`;
-  }
-
-  html += `</div>`;
+  </div>`;
   document.getElementById('game-content').innerHTML = html;
 }
 
-async function continuAfterDare() {
-  await fs.updateDoc(fs.doc(db, 'rooms', roomId), {
-    phase: 'pick-target',
-    dareRound: null
-  });
+async function continueAfterDare() {
+await fs.updateDoc(fs.doc(db, ‘rooms’, roomId), { phase: ‘pick-target’, dareRound: null });
 }
 
-// ═══════════════════════════════════
+// ══════════════════════════
 // ENDED
-// ═══════════════════════════════════
+// ══════════════════════════
 function renderEnded() {
-  showScreen('game');
-  document.getElementById('game-content').innerHTML = `
-    <div class="dare-screen">
-      <div class="game-title">GAME<br><span class="title-accent">OVER</span></div>
-      <div style="color:var(--muted);font-size:0.75rem;letter-spacing:0.15em;text-align:center">thanks for playing whisper or burn</div>
-      <button class="btn ghost" style="width:100%;max-width:280px" onclick="location.reload()">BACK TO HOME</button>
-    </div>`;
+showScreen(‘game’);
+clearSession();
+if (unsubRoom) { unsubRoom(); unsubRoom = null; }
+document.getElementById(‘host-end-wrap’).style.display = ‘none’;
+document.getElementById(‘game-content’).innerHTML = ` <div class="dare-screen"> <div class="game-title">GAME<br><span class="title-accent">OVER</span></div> <div style="color:var(--muted);font-size:0.75rem;letter-spacing:0.15em;text-align:center">thanks for playing whisper or burn</div> <button class="btn ghost" style="width:100%;max-width:280px" onclick="location.reload()">BACK TO HOME</button> </div>`;
 }
 
-// ═══════════════════════════════════
-// HOST END GAME
-// ═══════════════════════════════════
+// ══════════════════════════
+// END GAME
+// ══════════════════════════
 function confirmEndGame() {
-  showModal(`
-    <div class="modal-title">END THE GAME?</div>
-    <div style="color:var(--muted);font-size:0.75rem;margin-bottom:20px">this will end it for everyone in the room</div>
-    <div style="display:flex;gap:10px">
-      <button class="btn primary" style="flex:1" onclick="endGame()">END IT</button>
-      <button class="btn ghost" style="flex:1" onclick="closeModal()">CANCEL</button>
-    </div>`);
+showModal(`<div class="modal-title">END THE GAME?</div> <div style="color:var(--muted);font-size:0.75rem;margin-bottom:20px">this will end it for everyone</div> <div style="display:flex;gap:10px"> <button class="btn primary" style="flex:1" onclick="endGame()">END IT</button> <button class="btn ghost" style="flex:1" onclick="closeModal()">CANCEL</button> </div>`);
 }
-
 async function endGame() {
-  closeModal();
-  await fs.updateDoc(fs.doc(db, 'rooms', roomId), { phase: 'ended' });
+closeModal();
+await fs.updateDoc(fs.doc(db, ‘rooms’, roomId), { phase: ‘ended’ });
 }
 
-// ═══════════════════════════════════
+// ══════════════════════════
 // MODAL
-// ═══════════════════════════════════
-function showModal(html) {
-  document.getElementById('modal-body').innerHTML = html;
-  document.getElementById('modal-overlay').classList.add('open');
-}
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
-}
-
-// ═══════════════════════════════════
-// RENDER ROUTER
-// ═══════════════════════════════════
-// Patch renderState to handle leaked-reveal
-const _origRender = renderState;
-window.renderState = function() {
-  if (!gameState) return;
-  if (gameState.phase === 'leaked-reveal') {
-    showScreen('game');
-    renderLeakedReveal();
-    const hew = document.getElementById('host-end-wrap');
-    if (hew) hew.style.display = isHost ? 'block' : 'none';
-    return;
-  }
-  _origRender();
-}
+// ══════════════════════════
+function showModal(html) { document.getElementById(‘modal-body’).innerHTML = html; document.getElementById(‘modal-overlay’).classList.add(‘open’); }
+function closeModal() { document.getElementById(‘modal-overlay’).classList.remove(‘open’); }
 </script>
+
 </body>
 </html>
